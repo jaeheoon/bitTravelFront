@@ -12,22 +12,29 @@
 	String name = request.getParameter("joinName");
 	String addr = request.getParameter("joinAddr");
 	
+	MemberDTO memberDTO = new MemberDTO(name, id, pwd, phone, addr);
+	JSONObject json = new JSONObject();
+	
 	boolean check = memberDAO.isExist(id, "id");
 	if (!check) {
+		json.put("message", "중복된 아이디입니다");
 		System.out.println("중복된 아이디입니다");
+		response.setContentType("application/json");
+		response.getWriter().print(json.toString());
 		check = false;
 		return;
 	}
 	
 	check = memberDAO.isExist(phone, "phone");
 	if (!check) {
+		json.put("message", "중복된 번호입니다");
 		System.out.println("중복된 번호입니다");
 		check = false;
+		response.setContentType("application/json");
+		response.getWriter().print(json.toString());
 		return;
 	}
 	
-	MemberDTO memberDTO = new MemberDTO(name, id, pwd, phone, addr);
-	JSONObject json = new JSONObject();
 	
 	int su = memberDAO.write(memberDTO);
 	if(su != 0) {

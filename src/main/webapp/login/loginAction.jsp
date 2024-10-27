@@ -18,7 +18,7 @@
        session.setAttribute("userId", memberDTO.getId());
        session.setAttribute("userName", memberDTO.getName());
        json.put("message", "로그인에 성공하였습니다.");
-       json.put("redirect", "../html/index.jsp");
+       json.put("redirect", "../jsp/index.jsp");
    } else {
        json.put("message", "아이디나 비밀번호를 확인해주시기 바랍니다.");
    }

@@ -20,7 +20,7 @@
 
     if (su != 0) {
         json.put("message", "글 등록이 성공하였습니다");
-        json.put("redirect", "../html/article.jsp");
+        json.put("redirect", "../jsp/article.jsp");
     } else {
         json.put("message", "글 등록이 실패하였습니다");
     }

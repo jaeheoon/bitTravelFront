@@ -1,50 +1,49 @@
 package member.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-import main.Properties;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 import member.bean.MemberDTO;
 
 public class MemberDAO {
-	Properties properties = new Properties();
-	
 	private Connection con;
 	private PreparedStatement pstmt;
 	private ResultSet rs;
 	
+	private DataSource ds;
+	
 	private static MemberDAO instance = new MemberDAO();
 	
 	public MemberDAO() {
+		Context ctx;
 		try {
-			Class.forName(properties.getDriver());
-		} catch (ClassNotFoundException e) {
+			// context.xml의 커넥션풀에 있는 name 데이터를 가져와서 DataSource에 담아주는 역할
+			ctx = new InitialContext();
+//			ds = (DataSource)ctx.lookup("jdbc/oracle");
+			ds = (DataSource)ctx.lookup("java:comp/env/jdbc/oracle"); // Tomcat의 경우 앞에 접두사가 붙는다
+		} catch (NamingException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void getConnection() {
-		try {
-			con = DriverManager.getConnection(properties.getUrl(), properties.getUsername(), properties.getPassword());
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public static MemberDAO getInstance() {
 		return instance;
 	}
 
 	public int write(MemberDTO memberDTO) {
 		int su = 0;
-		getConnection();
 		StringBuilder sb = new StringBuilder();
 		sb.append("insert into member(MEMBER_NO, name, id, pwd, phone, address, admin) values(member_sequence.nextval, ?, ?, ?, ?, ?, 0)");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, memberDTO.getName());
 			pstmt.setString(2, memberDTO.getId());
@@ -68,13 +67,13 @@ public class MemberDAO {
 	public boolean isExist(String id, String value) {
 		int su = 0;
 		boolean check = true;
-		getConnection();
 		StringBuilder sb = new StringBuilder();
 		if (value.equals("id")) {
 			sb.append("select * from member where id = ?");
 		} else if(value.equals("phone"))
 			sb.append("select * from member where phone = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, id);
 			su = pstmt.executeUpdate();
@@ -101,9 +100,9 @@ public class MemberDAO {
 	public MemberDTO loginInfo(String id, String pwd) {
 		MemberDTO memberDTO = new MemberDTO();
 		StringBuilder sb = new StringBuilder();
-		getConnection();
 		sb.append("select * from member where id = ? and pwd = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, id);
 			pstmt.setString(2, pwd);
@@ -134,9 +133,9 @@ public class MemberDAO {
 	public boolean isExistPwd(String id, String pwd) {
 		boolean ck = false;
 		StringBuilder sb = new StringBuilder();
-		getConnection();
 		sb.append("select * from member where id = ? and pwd = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, id);
 			pstmt.setString(2, pwd);
@@ -159,9 +158,9 @@ public class MemberDAO {
 	public boolean deleteMember(String id) {
 		boolean ck = false;
 		StringBuilder sb = new StringBuilder();
-		getConnection();
 		sb.append("delete member where id = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			
 			pstmt.setString(1, id);
@@ -184,11 +183,11 @@ public class MemberDAO {
 	public boolean updateMember(String type, String value, String id, String pwd) {
 		StringBuilder sb = new StringBuilder();
 		boolean ck = false;
-		getConnection();
 		
 		sb.append("UPDATE MEMBER SET "+type+" = ? WHERE ID = ? and PWD = ?");
 		
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, value);
 			pstmt.setString(2, id);
@@ -210,10 +209,10 @@ public class MemberDAO {
 	public ArrayList<MemberDTO> viewList() {
 		StringBuilder sb = new StringBuilder();
 		ArrayList<MemberDTO> list = new ArrayList<>();
-		getConnection();
 		sb.append("select * from member WHERE admin = 0");
 		
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {

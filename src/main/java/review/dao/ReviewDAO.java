@@ -1,40 +1,39 @@
 package review.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-import main.Properties;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 import review.bean.ReviewDTO;
 
 public class ReviewDAO {
-	Properties properties = new Properties();
-	
 	private Connection con;
 	private PreparedStatement pstmt;
 	private ResultSet rs;
 	
+	private DataSource ds;
+	
 	private static ReviewDAO instance = new ReviewDAO();
 	
 	public ReviewDAO() {
+		Context ctx;
 		try {
-			Class.forName(properties.getDriver());
-		} catch (ClassNotFoundException e) {
+			// context.xml의 커넥션풀에 있는 name 데이터를 가져와서 DataSource에 담아주는 역할
+			ctx = new InitialContext();
+//			ds = (DataSource)ctx.lookup("jdbc/oracle");
+			ds = (DataSource)ctx.lookup("java:comp/env/jdbc/oracle"); // Tomcat의 경우 앞에 접두사가 붙는다
+		} catch (NamingException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void getConnection() {
-		try {
-			con = DriverManager.getConnection(properties.getUrl(), properties.getUsername(), properties.getPassword());
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public static ReviewDAO getInstance() {
 		return instance;
 	}
@@ -42,7 +41,6 @@ public class ReviewDAO {
 	public ArrayList<ReviewDTO> viewSearchList(String type, String value) {
 		StringBuilder sb = new StringBuilder();
 		ArrayList<ReviewDTO> list = new ArrayList<>();
-		getConnection();
 		sb.append("SELECT ");
 		sb.append("    r.REVIEW_NO AS reviewNo, ");
 		sb.append("    r.TRAVEL_NAME AS travelName, ");
@@ -60,6 +58,7 @@ public class ReviewDAO {
 		sb.append("WHERE "+type+" like ? ");
 		sb.append("ORDER BY r.LOGTIME DESC");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, "%"+value+"%");
 			rs = pstmt.executeQuery();
@@ -93,10 +92,10 @@ public class ReviewDAO {
 
 	public int write(ReviewDTO reviewDTO) {
 		int su = 0;
-		getConnection();
 		StringBuilder sb = new StringBuilder();
 		sb.append("INSERT INTO REVIEW(REVIEW_NO, ID, SUBJECT, CONTENT) VALUES (REVIEW_SEQUENCE.nextval, ?, ?, ?)");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, reviewDTO.getMemberId());
 			pstmt.setString(2, reviewDTO.getSubject());
@@ -117,10 +116,10 @@ public class ReviewDAO {
 
 	public int like(String travel, String id, int like) {
 		int su = 0;
-		getConnection();
 		StringBuilder sb = new StringBuilder();
 		sb.append("INSERT INTO FUNCTION(FUNCTION_NO, TRAVEL_NAME, ID, FUNC_LIKE) VALUES (FUNCTION_SEQUENCE.nextval, ?, ?, ?)");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, travel);
 			pstmt.setString(2, id);
@@ -142,7 +141,6 @@ public class ReviewDAO {
 	public boolean updateFunclike(int no, int value, String id) {
 		StringBuilder sb = new StringBuilder();
 		boolean ck = false;
-		getConnection();
 		
 		sb.append("UPDATE FUNCTION f ");
 	    sb.append("SET f.FUNC_LIKE = ? ");
@@ -155,6 +153,7 @@ public class ReviewDAO {
 	    sb.append("  AND f.ID = ?");
 		
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setInt(1, value);
 			pstmt.setInt(2, no);
@@ -176,11 +175,11 @@ public class ReviewDAO {
 	public boolean updateReview(int no, String type, String value, String id) {
 		StringBuilder sb = new StringBuilder();
 		boolean ck = false;
-		getConnection();
 		
 		sb.append("UPDATE REVIEW SET "+type+" = ? WHERE ID = ? AND REVIEW_NO = ?");
 		
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setString(1, value);
 			pstmt.setString(2, id);
@@ -202,9 +201,9 @@ public class ReviewDAO {
 	public boolean deleteReview(int no) {
 		boolean ck = false;
 		StringBuilder sb = new StringBuilder();
-		getConnection();
 		sb.append("delete review where review_no = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			
 			pstmt.setInt(1, no);
@@ -227,9 +226,9 @@ public class ReviewDAO {
 	public boolean deleteLike(int no) {
 		boolean ck = false;
 		StringBuilder sb = new StringBuilder();
-		getConnection();
 		sb.append("delete function where function_no = ?");
 		try {
+			con = ds.getConnection();
 			pstmt = con.prepareStatement(sb.toString());
 			
 			pstmt.setInt(1, no);
